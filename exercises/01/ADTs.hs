@@ -10,6 +10,7 @@
 {-# OPTIONS_GHC -fwarn-unused-matches #-}
 
 module ADTs where
+import Distribution.Simple.Setup (trueArg)
 
 -- TODO: talk about
 -- - join + write on discord
@@ -46,17 +47,25 @@ data RPS = Rock | Paper | Scissors
 -- >>> beats Paper Rock
 -- True
 beats :: RPS -> RPS -> Bool
-beats = undefined
+beats Rock Scissors = True 
+beats Scissors Paper = True
+beats Paper Rock = True
+beats _ _ = False
 
 -- TASK:
 -- Define the "next" throw you can do in the "usual" ordering of RPS
 -- i.e. `next x` should be the throw that beats x
 
 -- >>> next Rock
--- Paper
+-- C:\Users\pepis\AppData\Local\Temp\extB5FD: withFile: resource busy (file is locked)
 next :: RPS -> RPS
-next = undefined
+next Paper = Scissors
+next Scissors = Rock
+next Rock = Paper
 
+-- >>> next Paper
+-- Scissors
+ 
 -- TASK:
 -- Define what it means for two RPS values to be equal
 -- Use pattern matching and use _ matches!
@@ -66,7 +75,10 @@ next = undefined
 -- >>> eqRPS Rock Paper
 -- False
 eqRPS :: RPS -> RPS -> Bool
-eqRPS = undefined
+eqRPS Rock Rock = True
+eqRPS Paper Paper = True
+eqRPS Scissors Scissors = True
+eqRPS _ _ = False
 
 -- TASK:
 -- Define a shorter version of beats using next and eqRPS
@@ -77,7 +89,7 @@ eqRPS = undefined
 -- True
 
 beats' :: RPS -> RPS -> Bool
-beats' = undefined
+beats'  a  b = b `eqRPS` next a
 
 ------------
 -- Points --
@@ -164,16 +176,19 @@ addNat (Succ n1) n2 = Succ (addNat n1 n2)
 -- Succ (Succ (Succ (Succ (Succ (Succ Zero)))))
 
 multNat :: Nat -> Nat -> Nat
-multNat = undefined
+multNat Zero  _ = Zero
+multNat (Succ nat1) nat2  = nat2 `addNat` multNat (Succ(Succ nat1) ) nat2  
 
 -- TASK:
 -- Compare two Nats, returning an Ordering
 
 -- >>> compareNat (Succ Zero) Zero
 -- GT
-
 compareNat :: Nat -> Nat -> Ordering
-compareNat = undefined
+compareNat Zero Zero = EQ
+compareNat Zero _ = LT
+compareNat _ Zero = GT
+compareNat (Succ nat1) (Succ nat2) = compareNat nat1 nat2
 
 -- TASK:
 -- Return the maximum of two Nats
@@ -182,7 +197,7 @@ compareNat = undefined
 -- Succ (Succ Zero)
 
 maxNat :: Nat -> Nat -> Nat
-maxNat = undefined
+maxNat nat1 nat2 =  if GT == compareNat nat1 nat2 then nat1 else nat2
 
 -----------------
 -- Expressions --
@@ -209,7 +224,9 @@ infixr 8 `Mult`
 -- 12
 
 eval :: Expr -> Integer
-eval = undefined
+eval (Val a) = a
+eval (Plus expr1 expr2) = eval expr1 + eval expr2
+eval (Mult expr1 expr2) = eval expr1 * eval expr2
 
 -- TASK:
 -- Extend the Expr language with If expressions
@@ -220,36 +237,56 @@ eval = undefined
 ------------
 
 -- Data type for Ranks in a card game
-data Rank
+data Rank =
+  Ace | Jack | Queen | King | Ten | Nine | Eight | Seven | Six
   deriving (Show)
 
 -- Data type for Suits in a card game
-data Suit
+data Suit = 
+  Pika | Kupa | Karo | Spatiq
   deriving (Show)
 
 -- TASK:
 -- Check if two suits are equal
 suitEquals :: Suit -> Suit -> Bool
-suitEquals = undefined
+suitEquals Pika Pika = True
+suitEquals Kupa Kupa = True
+suitEquals Karo Karo = True
+suitEquals Spatiq Spatiq = True
+suitEquals _ _ = False
 
 -- Record syntax for representing a Card
-data Card
+data Card =
+   MkCard Suit Rank 
   deriving (Show)
 
 -- Data type for Contracts in the Belote game
-data Contract
+data Contract =
+  Suit Suit | VsickoKoz | BezKoz
   deriving (Show)
 
 -- TASK:
 -- Check if a card is of a trump suit based on a given contract
 isTrump :: Contract -> Card -> Bool
-isTrump = undefined
+isTrump VsickoKoz _ = True
+isTrump BezKoz _ = False
+isTrump (Suit s1) (MkCard s _) = suitEquals s1 s  
 
 -- TASK:
 -- Assign a numerical power value to a card based on the contract
 -- Ensure that higher power values represent stronger cards
 cardPower :: Contract -> Card -> Integer
-cardPower = undefined
+cardPower _ (MkCard _ Ace)   = 11
+cardPower contr (MkCard s Jack)= if isTrump contr (MkCard s Jack) then 20 else 2
+cardPower _ (MkCard _ King)= 4
+cardPower _ (MkCard _ Queen)= 3
+cardPower _ (MkCard _ Ten)= 10
+cardPower contr (MkCard s Nine)= if isTrump contr (MkCard s Nine) then 14 else 0
+cardPower _ (MkCard _ Eight)= 0
+cardPower _ (MkCard _ Seven)= 0
+cardPower _ (MkCard _ Six)= 0
+
+
 
 -- TASK:
 -- A data type to describe the different ways two cards can relate, given a contract
