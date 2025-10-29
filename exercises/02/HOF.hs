@@ -134,7 +134,7 @@ sndTuple (MkTuple _ b) = b
 -- 42
 
 const :: a -> b -> a
-const = undefined
+const a _= a
 
 -- TASK:
 -- Compose two functions, very useful very often
@@ -176,7 +176,8 @@ compose f g x = f (g x)
 -- 1024
 
 iterateN :: (a -> a) -> a -> Integer -> a
-iterateN = undefined
+iterateN _ x 0 = x
+iterateN f x n = iterateN f (f x) (n-1)
 
 -- TASK:
 -- Swap the two elements of a tuple
@@ -185,7 +186,7 @@ iterateN = undefined
 -- MkTuple 69 42
 
 swap :: Tuple a b -> Tuple b a
-swap = undefined
+swap  a = MkTuple (sndTuple a) (fstTuple a)
 
 -- TASK:
 -- Apply a function to only the first component of a tuple
@@ -194,7 +195,7 @@ swap = undefined
 -- MkTuple 42 1337
 
 first :: (a -> b) -> Tuple a c -> Tuple b c
-first = undefined
+first f a =  MkTuple (f (fstTuple a)) (sndTuple a)
 
 -- TASK:
 -- Convert a function operating on a tuple, to one that takes two arguments.
@@ -205,7 +206,7 @@ first = undefined
 -- 69
 
 curry :: (Tuple a b -> c) -> a -> b -> c
-curry = undefined
+curry f a b  = f (MkTuple a b)
 
 -- TASK:
 -- Convert a two argument function, to one that takes a Tuple.
@@ -214,7 +215,7 @@ curry = undefined
 -- 69
 
 uncurry :: (a -> b -> c) -> Tuple a b -> c
-uncurry = undefined
+uncurry f tup = f (fstTuple tup) (sndTuple tup)
 
 -- TASK:
 -- > p `on` f
@@ -226,7 +227,7 @@ uncurry = undefined
 -- 59
 
 on :: (b -> b -> c) -> (a -> b) -> a -> a -> c
-on = join . ((flip . ((.) .)) .) . (.)
+on f p a m  = f (p a) (p m)
 
 -- TASK:
 -- Execute a function, until the result starts sastifying a given predicate
@@ -235,11 +236,7 @@ on = join . ((flip . ((.) .)) .) . (.)
 -- 1372
 
 until :: (a -> Bool) -> (a -> a) -> a -> a
--- until p f x = if p x then x else until p f (f x)
-until = fix (ap ((.) . ap . (if' =<<)) . flip flip id . (liftM2 (.) .))
-
-if' :: Bool -> a -> a -> a
-if' p x y = if p then x else y
+until pr f a = if pr a  then a else until pr f (f a)
 
 -- TASK:
 -- Apply two different functions to the two different arguments of a tuple
@@ -247,6 +244,9 @@ if' p x y = if p then x else y
 
 -- mapTuple :: ???
 -- mapTuple = undefined
+
+mapTuple :: Tuple a b -> (a -> c) -> (b -> d) -> Tuple c d 
+mapTuple tup1 f1 f2 = MkTuple (f1 (fstTuple tup1)) (f2 (sndTuple tup1))
 
 data Nat
   = Zero
