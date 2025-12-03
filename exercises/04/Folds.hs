@@ -110,8 +110,9 @@ append xs ys = foldr ys (:) xs
 -- >>> natToInteger $ Succ $ Succ $ Succ Zero
 -- 3
 
+
 natToInteger :: Nat -> Integer
-natToInteger = undefined
+natToInteger = foldNat 0 (+1)
 
 -- TASK:
 -- Implement exponentiation(n ^ m) using foldNat.
@@ -119,8 +120,9 @@ natToInteger = undefined
 -- >>> natToInteger $ expNat (integerToNat 2) (integerToNat 10)
 -- 1024
 
+
 expNat :: Nat -> Nat -> Nat
-expNat = undefined
+expNat n1 = foldNat (Succ Zero) (multNat' n1)
 
 ---------------
 -- EXERCISES --
@@ -131,11 +133,11 @@ expNat = undefined
 
 -- >>> and [False]
 -- False
--- >>> and [True, True]
--- True
+-- >>> and [True, True, False]
+-- False
 
 and :: [Bool] -> Bool
-and = undefined
+and = foldr True (&&)
 
 -- TASK:
 -- Implement or using foldr
@@ -146,24 +148,26 @@ and = undefined
 -- True
 
 or :: [Bool] -> Bool
-or = undefined
+or = foldr False (||)
 
 -- TASK:
 -- Implement length using foldr
 
 -- >>> length [1,2,8]
 -- 3
+
 -- >>> length []
--- 0
+-- Prelude.undefined
 
 length :: [a] -> Integer
-length = undefined
+length = foldr 0 (\ _ y -> y + 1)
+-- length = (foldr 0 (+)) . (map (const 1))
 
 -- TASK:
 -- Implement (++) using foldr
 -- >>> [1,2,3]
 (++) :: [a] -> [a] -> [a]
-(++) = undefined
+(++) xs ys = foldr ys (:) xs
 
 -- TASK:
 -- Implement concat using foldr
@@ -176,7 +180,7 @@ length = undefined
 -- []
 
 concat :: [[a]] -> [a]
-concat = undefined
+concat = foldr [] (++)
 
 -- TASK:
 -- Implement reverse using foldr (it's fine to do this in O(n^2)
@@ -187,7 +191,9 @@ concat = undefined
 -- []
 
 reverse :: [a] -> [a]
-reverse = undefined
+reverse = foldr [] ffff
+  where
+      ffff a az = az ++ [a]
 
 -- TASK:
 -- Implement map using foldr
@@ -200,7 +206,7 @@ reverse = undefined
 -- [(3,1),(3,2),(3,3)]
 
 map :: (a -> b) -> [a] -> [b]
-map = undefined
+map f = foldr [] (\x acc -> f x : acc)
 
 -- TASK:
 -- Implement filter using foldr
@@ -212,10 +218,10 @@ map = undefined
 -- >>> filter even [1..10]
 -- [2,4,6,8,10]
 -- >>> filter isPrime [1..20]
--- [2,3,5,7,11,13,17,19]
+-- Variable not in scope: isPrime :: a_a1o0K[sk:1] -> Bool
 
 filter :: (a -> Bool) -> [a] -> [a]
-filter = undefined
+filter f = foldr [] (\ x acc -> if f x then x : acc else acc)
 
 -- TASK:
 -- Implement null using foldr
@@ -226,7 +232,7 @@ filter = undefined
 -- False
 
 null :: [a] -> Bool
-null = undefined
+null = foldr True (\ _ _ -> False) 
 
 -- TASK:
 -- Implement headMaybe using foldr
@@ -237,8 +243,9 @@ null = undefined
 -- Just 1
 
 headMaybe :: [a] -> Maybe a
-headMaybe = undefined
-
+headMaybe = foldr Nothing ffff
+  where
+    ffff a acc = Just a 
 -- TASK:
 -- Implement a function that splits a list into two based on a predicate p
 -- those that satisfy p and those that don't.

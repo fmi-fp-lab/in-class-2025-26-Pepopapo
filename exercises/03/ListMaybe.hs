@@ -124,12 +124,17 @@ ebayMdaeh (Just x) = [x]
 -- Generate all the numbers in the ("mathematical range") [n, m] in a list (inclusive).
 
 -- >>> listFromRange 3 12
--- [3,4,5,6,7,8,9,10,11,12]
+-- [3,4,5,6,7,8,9,10,11]
 -- >>> listFromRange 8 6
 -- []
 
+
 listFromRange :: Integer -> Integer -> [Integer]
-listFromRange = undefined
+listFromRange a b
+  | a==b = []
+  | a < b = a : listFromRange (a+1) b
+  | otherwise = []
+
 
 -- TASK:
 -- Multiply all the elements of a list
@@ -140,12 +145,14 @@ listFromRange = undefined
 -- 1
 
 product :: [Integer] -> Integer
-product = undefined
+product [] = 1
+product (x : xs) =  x * product xs
 
 -- TASK:
 -- Implement factorial with prod and listFromRange
 fact :: Integer -> Integer
-fact = undefined
+fact 0 = 1 
+fact n =product (listFromRange 0 n)
 
 -- TASK:
 -- Return a list of the numbers that divide the given number.
@@ -158,7 +165,7 @@ fact = undefined
 -- [1,2,3,4,6,8,12,24]
 
 divisors :: Integer -> [Integer]
-divisors = undefined
+divisors n = [x | x <- listFromRange 1 (n + 1) , n `mod` x == 0]
 
 -- TASK:
 -- Implement prime number checking using listFromRange and divisors
