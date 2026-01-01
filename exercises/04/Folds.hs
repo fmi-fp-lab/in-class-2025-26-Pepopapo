@@ -232,7 +232,7 @@ filter f = foldr [] (\ x acc -> if f x then x : acc else acc)
 -- False
 
 null :: [a] -> Bool
-null = foldr True (\ _ _ -> False) 
+null = foldr True (\ _ _ -> False)
 
 -- TASK:
 -- Implement headMaybe using foldr
@@ -242,10 +242,13 @@ null = foldr True (\ _ _ -> False)
 -- >>> headMaybe [1,2,3]
 -- Just 1
 
+-- >>> headMaybe [20,10,40]
+-- Just 20
+
 headMaybe :: [a] -> Maybe a
 headMaybe = foldr Nothing ffff
   where
-    ffff a acc = Just a 
+    ffff a _ = Just a
 -- TASK:
 -- Implement a function that splits a list into two based on a predicate p
 -- those that satisfy p and those that don't.
@@ -256,7 +259,9 @@ headMaybe = foldr Nothing ffff
 -- ([2,4,6,8,10],[1,3,5,7,9])
 
 partition :: (a -> Bool) -> [a] -> ([a], [a])
-partition = undefined
+partition f xs = (filter f xs , filter (not.f) xs)
+
+
 
 -- TASK:
 -- Implement partition using foldr
@@ -267,7 +272,7 @@ partition = undefined
 -- ([2,4,6,8,10],[1,3,5,7,9])
 
 partitionfoldr :: (a -> Bool) -> [a] -> ([a], [a])
-partitionfoldr = undefined
+partitionfoldr f = foldr ([],[]) (\ x (r,l) ->  if f x then (x:r,l) else (r,x:l))
 
 -- TASK:
 -- Implement validateList using foldr.
@@ -279,32 +284,38 @@ partitionfoldr = undefined
 -- >>> validateList [Nothing, Just 6, Just 9]
 -- Nothing
 -- >>> validateList [Just 42, Nothing, Just 9]
--- Nothin
+-- Nothing
 -- >>> validateList [Just 42, Just 6, Nothing]
 -- Nothing
 
 validateList :: [Maybe a] -> Maybe [a]
-validateList = undefined
+validateList = foldr (Just []) check
+  where
+    check (Just x ) (Just xs) = Just (x:xs)
+    check _ _ = Nothing
+
 
 -- TASK:
 -- Look at the recursor for nats - foldNat. In there we replaced {Nat}'s constructors with "things".
 -- Think about how a fold for tuples should look like, and implement it.
 -- Does this function remind you of another function we've previously implemented?
--- foldTuple :: ?
--- foldTuple = undefined
+foldTuple :: (a -> b -> c) -> (a,b) -> c
+foldTuple funkciq (x,y)= funkciq x y
 
 -- TASK:
 -- Same as above, but this time for Maybe
--- foldMaybe :: ?
--- foldMaybe = undefined
+foldMaybe :: (a->b) -> b -> Maybe a -> b
+foldMaybe _ bazov Nothing  = bazov
+foldMaybe f _ (Just x)  = f x
 
 -- TASK:
 -- Same as above, but this time for Either
 -- Reminder: Either is defined like so:
 -- data Either a b = Left a | Right b
 --
--- foldEither :: ?
--- foldEither = undefined
+foldEither :: (b->c) -> c -> Either a b -> c
+foldEither _ bazov (Left _ ) = bazov
+foldEither f _ (Right stoinost) = f stoinost
 
 -- TASK:
 -- If Nats can be converted to "n times applications" via foldNat,
@@ -346,12 +357,13 @@ validateList = undefined
 -- Succ (Succ (Succ Zero))
 
 iterateToNat :: (forall a. (a -> a) -> a -> a) -> Nat
-iterateToNat _f = undefined
+iterateToNat n = n Succ Zero
 
 -- EXERCISE
 -- This is the same as foldNat, except with arguments reaarranged to mirror {iterateToNat}
 natToIterate :: Nat -> (a -> a) -> a -> a
-natToIterate = undefined
+natToIterate Zero _ bazov = bazov
+natToIterate (Succ nat) f bazov = f (natToIterate nat f bazov)
 
 type Natural = forall a. (a -> a) -> a -> a
 
@@ -384,7 +396,7 @@ zero _f v = v
 -- 6
 
 suc :: Natural -> Natural
-suc _n = undefined
+suc n f x = f (n f x)
 
 -- TASK:
 -- We can also add these. Here we need to think about how to add f n times to another Natural.
@@ -397,7 +409,7 @@ suc _n = undefined
 -- 6
 
 add :: Natural -> Natural -> Natural
-add _n _m = undefined
+add n m f x = n f (m f x)
 
 -- TASK:
 -- Now multiply them
@@ -412,7 +424,7 @@ add _n _m = undefined
 -- 6
 
 mult :: Natural -> Natural -> Natural
-mult _n _m = undefined
+mult n m f = n  (m f)
 
 -- Is the same true for lists? Is there some function type that is "isomorphic" to lists - you can convert
 -- back and forth between lists and the function, without losing data? Like how Natural is to Nat

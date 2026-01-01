@@ -13,6 +13,7 @@
 {-# OPTIONS_GHC -fwarn-name-shadowing #-}
 -- use all your pattern matches!
 {-# OPTIONS_GHC -fwarn-unused-matches #-}
+{-# HLINT ignore "Use foldr" #-}
 
 module Typeclasses where
 
@@ -103,7 +104,9 @@ class (Semigroup a) => Monoid a where
 -- False
 
 leq :: (Ord a) => a -> a -> Bool
-leq = undefined
+leq a b
+  | compare a b == LT || compare a b == EQ = True
+  | otherwise                              = False
 
 -- TASK:
 -- Implement compare using (<=)
@@ -118,7 +121,10 @@ leq = undefined
 -- LT
 
 compare' :: (Ord a) => a -> a -> Ordering
-compare' = undefined
+compare' a b
+ | not $ a <= b     = GT
+ | not $ b <= a  = LT
+ | otherwise        = EQ
 
 -- TASK:
 -- Given a function to convert a values, compare them using the ordering in b.
@@ -131,7 +137,7 @@ compare' = undefined
 -- LT
 
 comparing :: (Ord b) => (a -> b) -> a -> a -> Ordering
-comparing = undefined
+comparing f a b = compare  (f a) $ f b
 
 data Nat = Zero | Succ Nat
   deriving (Show)
@@ -139,9 +145,14 @@ data Nat = Zero | Succ Nat
 -- TASK:
 -- Implement a Monoid instance for Nat based on addition
 
--- instance Semigroup Nat where
-
--- instance Monoid Nat where
+instance Semigroup Nat where
+  (<>) :: Nat -> Nat -> Nat
+  (<>) Zero Zero = Zero
+  (<>) Zero n = n
+  (<>) (Succ n1) n2 = Succ $ (<>) n1 n2
+instance Monoid Nat where
+  mempty :: Nat
+  mempty = Zero
 
 -- TASK:
 -- Implement a Monoid instance for [a]
@@ -149,37 +160,45 @@ data Nat = Zero | Succ Nat
 -- This is similar to what is usually called a "free" structure in mathematics.
 -- And indeed, lists are "the free Monoid"
 
--- instance Semigroup [a] where
+instance Semigroup [a] where
+  (<>) xs ys = xs ++ ys
 
--- instance Monoid [a] where
-
+instance Monoid [a] where
+  mempty :: [a]
+  mempty = []
 -- TASK:
 -- Implement a monoid instance for the Any type, with the following semantics:
 -- When combining things via (<>) we want to see if any of the arguments are True.
 
 newtype Any = MkAny {getAny :: Bool}
 
--- instance Semigroup Any where
-
--- instance Monoid Any where
-
+instance Semigroup Any where
+  (<>) :: Any -> Any -> Any
+  (<>) (MkAny x) (MkAny y) = MkAny $ x || y
+instance Monoid Any where
+  mempty :: Any
+  mempty = MkAny False
 -- TASK:
 -- Implement a monoid instance for the All type, with the following semantics:
 -- When combining things via (<>) we want to see if all of the arguments are True.
 
 newtype All = MkAll {getAll :: Bool}
 
--- instance Semigroup All where
-
--- instance Monoid All where
-
+instance Semigroup All where
+  (<>) :: All -> All -> All
+  (<>) (MkAll x) (MkAll y) = MkAll $ x && y
+instance Monoid All where
+  mempty = MkAll True
 -- TASK:
 -- We can lift monoids over tuples by doing the monoidal operation component-wise. Implement the instance
 
--- instance (Semigroup a, Semigroup b) => Semigroup (a, b) where
+instance (Semigroup a, Semigroup b) => Semigroup (a, b) where
+  (<>) :: (Semigroup a, Semigroup b) => (a, b) -> (a, b) -> (a, b)
+  (<>) (a1,a2) (b1,b2) = (a1 <> b1 , a2 <> b2)
 
--- instance (Monoid a, Monoid b) => Monoid (a, b) where
-
+instance (Monoid a, Monoid b) => Monoid (a, b) where
+  mempty :: (Monoid a, Monoid b) => (a, b)
+  mempty = (mempty,mempty)
 -- TASK:
 -- "Monoid multiplication"
 -- mtimes 5 x is intuitively supposed to be the same as 5 * x,
@@ -191,7 +210,8 @@ newtype All = MkAll {getAll :: Bool}
 -- Succ (Succ (Succ (Succ (Succ (Succ Zero)))))
 
 mtimes :: (Monoid a) => Nat -> a -> a
-mtimes = undefined
+mtimes (Succ  nat) a =  a <> mtimes nat a
+mtimes Zero _ = mempty
 
 -- TASK:
 -- Combine a list of elements, assuming that the type in the list is a Monoid.
@@ -203,7 +223,8 @@ mtimes = undefined
 -- [1,2,3,4,5,6,7,8,9]
 
 fold :: (Monoid a) => [a] -> a
-fold = undefined
+fold [] = mempty
+fold (x:xs) = x <> fold xs
 
 -- TASK:
 -- "Fold" a Maybe using a monoid and a mapping function.
@@ -215,7 +236,8 @@ fold = undefined
 -- []
 
 foldMapMaybe :: (Monoid b) => (a -> b) -> Maybe a -> b
-foldMapMaybe = undefined
+foldMapMaybe _ Nothing = mempty
+foldMapMaybe f (Just a) = f a
 
 -- TASK:
 -- Fold a list using a mapping function.
@@ -224,19 +246,20 @@ foldMapMaybe = undefined
 -- ** Extremely** useful function.
 
 foldMap :: (Monoid b) => (a -> b) -> [a] -> b
-foldMap = undefined
+foldMap _ [] = mempty
+foldMap f (x:xs) = f x <> foldMap f xs
 
 -- TASK:
 -- Implement all using the All monoid and foldMap.
 
 all :: (a -> Bool) -> [a] -> Bool
-all = undefined
+all f xs = getAll $ foldMap (\x -> (MkAll (f x))) xs
 
 -- TASK:
 -- Implement any using the Any monoid and foldMap.
 
 any :: (a -> Bool) -> [a] -> Bool
-any = undefined
+any f xs = getAny $ foldMap (\ x -> MkAny (f x)) xs
 
 -- TASK:
 -- Maybe lifts any Semigroup into a Monoid by adding an extra element (Nothing) to be the mempty.
@@ -249,21 +272,24 @@ any = undefined
 
 newtype First a = MkFirst {getFirst :: Maybe a}
 
--- instance Semigroup (First a) where
-
--- instance Monoid (First a) where
-
+instance Semigroup (First a) where
+  (<>) :: First a -> First a -> First a
+  (<>) (MkFirst (Just a))  _ = MkFirst (Just a)
+  (<>) (MkFirst Nothing)   (MkFirst (Just a )) = MkFirst (Just a )
+  (<>) _ _ = MkFirst Nothing
+instance Monoid (First a) where
+ mempty = MkFirst Nothing
 -- TASK:
 -- Utility function converting a predicate to a Maybe returning function.
 
 guarded :: (a -> Bool) -> a -> Maybe a
-guarded = undefined
+guarded f x = if f x then Just x else Nothing
 
 -- TASK:
 -- Now implement the find function by using First and foldMap.
 
 find :: (a -> Bool) -> [a] -> Maybe a
-find = undefined
+find f xs = getFirst $ foldMap (MkFirst . guarded f) xs
 
 -- TASK:
 -- If we have a Monoid for an a, we can make another monoid by simply flipping the operation, i.e.
@@ -276,12 +302,18 @@ find = undefined
 newtype Dual a = MkDual {getDual :: a}
 
 -- Implement Semigroup and Monoid for Dual
+instance (Semigroup a) => Semigroup (Dual a) where
+  (<>) :: Semigroup a => Dual a -> Dual a -> Dual a
+  (<>) (MkDual a) (MkDual b) = MkDual (b <> a)
 
+instance (Monoid a) => Monoid (Dual a) where
+  mempty :: Monoid a => Dual a
+  mempty = MkDual mempty
 -- TASK:
 -- Now use Dual and foldMap to implement reverse.
 
 reverse :: [a] -> [a]
-reverse = undefined
+reverse xs = getDual $ foldMap (MkDual.(:[])) xs
 
 -- TASK:
 -- Given a list of key-value pairs, update the value for a given key, or if it doesn't exist
@@ -300,7 +332,8 @@ reverse = undefined
 -- [("gosho",42),("pesho",420)]
 
 upsert :: (_) => (Maybe b -> b) -> a -> [(a, b)] -> [(a, b)]
-upsert = undefined
+upsert f key xs = if(find (\ (x,_) -> x==key) xs) == Nothing then (key ,f Nothing ):xs
+  else foldMap (\ (x,y) -> let newPair = if x==key then (x, f (Just y)) else (x,y) in [newPair]) xs
 
 -- TASK:
 -- For a given list, return a key-value list with the keys being the original elements,
@@ -308,12 +341,12 @@ upsert = undefined
 -- Think about what the minimal constraint is you will require.
 
 -- >>> histo [1,2,3]
--- [(3,1),(2,1),(1,1)]
+-- [(1,1),(2,1),(3,1)]
 -- >>> histo "How much wood could a wood chuck chuck if a wood chuck could chuck wood?"
--- [('?',1),('d',6),('o',10),('w',5),(' ',14),('k',4),('c',11),('u',8),('h',5),('l',3),('a',2),('f',1),('i',1),('m',1),('H',1)]
+-- [('H',1),('o',11),('w',5),(' ',14),('m',1),('u',7),('c',11),('h',5),(' ',14),('w',5),('o',11),('o',11),('d',6),(' ',14),('c',11),('o',11),('u',7),('l',2),('d',6),(' ',14),('a',2),(' ',14),('w',5),('o',11),('o',11),('d',6),(' ',14),('c',11),('h',5),('u',7),('c',11),('k',4),(' ',14),('c',11),('h',5),('u',7),('c',11),('k',4),(' ',14),('i',1),('f',1),(' ',14),('a',2),(' ',14),('w',5),('o',11),('o',11),('d',6),(' ',14),('c',11),('h',5),('u',7),('c',11),('k',4),(' ',14),('c',11),('o',11),('u',7),('l',2),('d',6),(' ',14),('c',11),('h',5),('u',7),('c',11),('k',4),(' ',14),('w',5),('o',11),('o',11),('d',6),('?',1)]
 
-histo :: (_) => [a] -> [(a, Integer)]
-histo = undefined
+histo :: Eq a => [a] -> [(a, Integer)]
+histo xs = foldMap (\ x -> [(x, toInteger $ length [d| d <- xs , d==x])]) xs
 
 -- TASK:
 -- Insert a value into an ordered list. Write the constraint yourself.
@@ -323,8 +356,17 @@ histo = undefined
 -- >>> insert 5 [2, 4 .. 42]
 -- [2,4,5,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38,40,42]
 
-insert :: (_) => a -> [a] -> [a]
-insert = undefined
+insert :: Ord a => a -> [a] -> [a]
+insert a [] = [a]
+insert a (x:xs) = go x xs 
+  where
+    go b []
+      | b <= a    = [b,a]
+      | otherwise = [b,x]
+    go b (y:ys)
+      | b <= a && a <= y = b:a:y:ys
+      | otherwise        =  b: go y ys
+
 
 -- TASK:
 -- Implement insertion sort.
@@ -333,8 +375,7 @@ insert = undefined
 -- [1,1,2,3,4,12,34]
 
 sort :: (_) => [a] -> [a]
-sort = undefined
-
+sort xs =
 -- TASK:
 -- Now use First, foldMap, the monoid for tuples and Dual to implement a function which works like find
 -- but instead returns the first and the last element matching a predicate **in one traversal** of the input list.

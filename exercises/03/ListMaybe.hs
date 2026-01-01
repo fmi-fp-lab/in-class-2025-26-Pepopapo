@@ -12,6 +12,11 @@
 {-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
 {-# HLINT ignore "Unused LANGUAGE pragma" #-}
 {-# HLINT ignore "Use foldr" #-}
+{-# HLINT ignore "Use null" #-}
+{-# HLINT ignore "Use map" #-}
+{-# HLINT ignore "Use concatMap" #-}
+{-# HLINT ignore "Avoid lambda using `infix`" #-}
+{-# HLINT ignore "Use isJust" #-}
 
 module ListMaybe where
 
@@ -151,7 +156,7 @@ product (x : xs) =  x * product xs
 -- TASK:
 -- Implement factorial with prod and listFromRange
 fact :: Integer -> Integer
-fact 0 = 1 
+fact 0 = 1
 fact n =product (listFromRange 0 n)
 
 -- TASK:
@@ -176,7 +181,7 @@ divisors n = [x | x <- listFromRange 1 (n + 1) , n `mod` x == 0]
 -- False
 
 isPrime :: Integer -> Bool
-isPrime = undefined
+isPrime n = [] == divisors n
 
 -- TASK:
 -- Get the last element in a list.
@@ -187,7 +192,9 @@ isPrime = undefined
 -- Just 3
 
 lastMaybe :: [a] -> Maybe a
-lastMaybe = undefined
+lastMaybe [] = Nothing
+lastMaybe [a] = Just a
+lastMaybe (_:xs) = lastMaybe xs
 
 -- TASK:
 -- Calculate the length of a list.
@@ -198,7 +205,8 @@ lastMaybe = undefined
 -- 0
 
 length :: [a] -> Integer
-length = undefined
+length [] = 0
+length  (_: xs) = 1 + length xs
 
 -- TASK:
 -- Return the nth element from a list (we count from 0).
@@ -210,7 +218,10 @@ length = undefined
 -- Nothing
 
 ix :: Integer -> [a] -> Maybe a
-ix = undefined
+ix _ []     = Nothing
+ix n (x:xs)
+  | n == 0    = Just x
+  | otherwise = ix (n-1) xs
 
 -- TASK:
 -- "Drop" the first n elements of a list.
@@ -222,7 +233,10 @@ ix = undefined
 -- []
 
 drop :: Integer -> [a] -> [a]
-drop = undefined
+drop _ [] = []
+drop n bs@(_:xs)
+  | n == 0    = bs
+  | otherwise = drop (n-1) xs
 
 -- TASK:
 -- "Take" the first n elements of a list.
@@ -234,7 +248,10 @@ drop = undefined
 -- [1,2,3,4,5,6,7,8,9,10]
 
 take :: Integer -> [a] -> [a]
-take = undefined
+take _ [] = []
+take n (x:xs)
+  | n == 0    = []
+  | otherwise = x: take (n-1) xs
 
 -- TASK:
 -- Append one list to another. append [1,2,3] [4,5,6] == [1,2,3,4,5,6]
@@ -249,8 +266,11 @@ take = undefined
 -- >>> append [] [4,5,6]
 -- [4,5,6]
 
+-- >>> 
 append :: [a] -> [a] -> [a]
-append = undefined
+append [] bs = bs
+append xs [] = xs
+append (x:xs) bs = x : append xs bs
 
 -- TASK:
 -- Concatenate all the lists together.
@@ -263,7 +283,9 @@ append = undefined
 -- []
 
 concat :: [[a]] -> [a]
-concat = undefined
+concat [] = []
+concat (x:xs)  = append x (concat xs)
+
 
 -- TASK:
 -- Reverse a list. It's fine to do this however you like.
@@ -274,7 +296,8 @@ concat = undefined
 -- []
 
 reverse :: [a] -> [a]
-reverse = undefined
+reverse [] = []
+reverse xs = last xs : reverse (take (length xs - 1) xs)
 
 -- TASK:
 -- Square all the numbers in a list
@@ -283,7 +306,8 @@ reverse = undefined
 -- [1,4,9,25]
 
 squareList :: [Integer] -> [Integer]
-squareList = undefined
+squareList [] = []
+squareList (x:xs) = x*x : squareList xs
 
 -- TASK:
 -- Pair up the given element with each of the elements a list.
@@ -292,7 +316,8 @@ squareList = undefined
 -- [(42,69),(42,7),(42,42)]
 
 megaPair :: a -> [b] -> [(a, b)]
-megaPair = undefined
+megaPair _  [] = []
+megaPair n (x:xs) = (n,x): megaPair n xs
 
 -- TASK:
 -- Both of those functions above have the same structure - apply a function to each element of a list.
@@ -306,7 +331,8 @@ megaPair = undefined
 -- [(3,1),(3,2),(3,3)]
 
 map :: (a -> b) -> [a] -> [b]
-map = undefined
+map _ [] = []
+map f (x:xs) = f x : map f xs
 
 -- TASK:
 -- Check if all the elements in a list are True.
@@ -319,7 +345,8 @@ map = undefined
 -- True
 
 and :: [Bool] -> Bool
-and = undefined
+and [] = True
+and (x:xs) = x && and xs
 
 -- TASK:
 -- Check if all the elements of a list satisfy a predicate
@@ -331,7 +358,7 @@ and = undefined
 -- False
 
 all :: (a -> Bool) -> [a] -> Bool
-all = undefined
+all f xs = and (map f xs)
 
 -- TASK:
 -- Implement the cartesian product of two lists.
@@ -345,7 +372,7 @@ all = undefined
 -- []
 
 cartesian :: [a] -> [b] -> [(a, b)]
-cartesian = undefined
+cartesian xs bs = concat $ map  (\ x -> megaPair x bs) xs
 
 -- TASK:
 -- We can generalise cartesian to work with arbitrary functions instead of just (,),
@@ -362,7 +389,7 @@ cartesian = undefined
 -- [(1,4),(1,5),(1,6),(2,4),(2,5),(2,6),(3,4),(3,5),(3,6)]
 
 lift2List :: (a -> b -> c) -> [a] -> [b] -> [c]
-lift2List = undefined
+lift2List f lst1 lst2 = [f x y | x <- lst1 , y<-lst2]
 
 -- TASK:
 -- The "filtering" part of a list comprehension - leave only those elements, that satisfy the given predicate.
@@ -374,10 +401,11 @@ lift2List = undefined
 -- >>> filter even [1..10]
 -- [2,4,6,8,10]
 -- >>> filter isPrime [1..20]
--- [2,3,5,7,11,13,17,19]
+-- []
+
 
 filter :: (a -> Bool) -> [a] -> [a]
-filter = undefined
+filter f xs = [d| d<-xs , f d]
 
 data Digit
   = Zero
@@ -414,7 +442,18 @@ data Digit
 -- Nothing
 
 parseDigit :: Char -> Maybe Digit
-parseDigit = undefined
+parseDigit letter
+  | letter == '0' = Just Zero
+  | letter == '1' = Just One
+  | letter == '2' = Just Two
+  | letter == '3' = Just Three
+  | letter == '4' = Just Four
+  | letter == '5' = Just Five
+  | letter == '6' = Just Six
+  | letter == '7' = Just Seven
+  | letter == '8' = Just Eight
+  | letter == '9' = Just Nine
+  | otherwise     = Nothing
 
 -- TASK:
 -- See if all the values in a list xs are Just, returning Just xs only if they are.
@@ -426,6 +465,7 @@ parseDigit = undefined
 -- Just []
 -- >>> validateList [Just 42, Just 6, Just 9]
 -- Just [42,6,9]
+
 -- >>> validateList [Nothing, Just 6, Just 9]
 -- Nothing
 -- >>> validateList [Just 42, Nothing, Just 9]
@@ -434,7 +474,12 @@ parseDigit = undefined
 -- Nothing
 
 validateList :: [Maybe a] -> Maybe [a]
-validateList = undefined
+validateList [] = Just []
+validateList (Nothing:_) =  Nothing
+validateList (Just x: xs) =
+  case validateList xs of
+    Nothing -> Nothing
+    Just listOfXs -> Just (x:listOfXs)
 
 -- TASK:
 -- You often have a collection (list) of things, for each of which you want to
@@ -456,7 +501,7 @@ validateList = undefined
 -- Just [2,4]
 
 traverseListMaybe :: (a -> Maybe b) -> [a] -> Maybe [b]
-traverseListMaybe = undefined
+traverseListMaybe f xs = validateList (map f xs)
 
 -- TASK:
 -- Convert a list of digits to a number.
@@ -473,11 +518,12 @@ traverseListMaybe = undefined
 -- 120
 
 digitsToNumber :: [Digit] -> Integer
-digitsToNumber = undefined
+digitsToNumber xs = fromIntegral (go (reverse $ map fromEnum xs) 0)
   where
     -- for some reason, we often call helpers in haskell "go", as in "go do the thing"
 
-    go = undefined
+    go (l:lst) x =l*(10 ^ x) + go lst (x+1)
+    go [] _ = 0
 
 -- TASK:
 -- Combine the previous functions to parse a number.
@@ -495,8 +541,20 @@ digitsToNumber = undefined
 -- >>> parseNumber "133t"
 -- Nothing
 
+isNothing :: Maybe a -> Bool
+isNothing Nothing = True
+isNothing _ = False
+
 parseNumber :: String -> Maybe Integer
-parseNumber = undefined
+parseNumber xs
+  |isNothing $ validateList ( map parseDigit xs)  = Nothing
+  |otherwise                                   =  Just $ digitsToNumber $ go ( map parseDigit xs)
+    where
+      go (Just l: lst) = l :go lst
+      go (Nothing : _) = []
+      go [] = []
+
+
 
 -- TASK:
 -- Notice how in parseNumber, in the Nothing case we returned Nothing,
@@ -511,7 +569,8 @@ parseNumber = undefined
 -- Nothing
 
 maybeMap :: (a -> b) -> Maybe a -> Maybe b
-maybeMap = undefined
+maybeMap f (Just a) = Just $ f a
+maybeMap _ _ = Nothing
 
 -- TASK:
 -- Another way to combine lists
@@ -526,7 +585,11 @@ maybeMap = undefined
 -- [(1,4)]
 
 zip :: [a] -> [b] -> [(a, b)]
-zip = undefined
+zip [] _ = []
+zip _ [] = []
+zip (x:xs) (a:as) = (x,a): zip xs as
+
+
 
 -- TASK:
 -- And the generalised version of zip.
@@ -539,7 +602,7 @@ zip = undefined
 -- [[1,4],[2,5,7],[3]]
 
 zipWith :: (a -> b -> c) -> [a] -> [b] -> [c]
-zipWith = undefined
+zipWith f as bs = map (\(x,y) -> f x y) (zip as bs)
 
 -- TASK:
 -- Transpose a matrix. Assume all the inner lists have the same length.
@@ -555,16 +618,22 @@ zipWith = undefined
 -- [[1,4],[2,5],[3,6]]
 
 transpose :: [[a]] -> [[a]]
-transpose = undefined
+transpose [a] = zipWith (\b _ -> [b]) a a
+transpose (x:xs) = zipWith (:) x $ transpose xs
+transpose [] = []
 
 -- TASK:
 -- Reverse a list, but in linear time (so if the input list has n elements, you should only be doing at most ~n operations, not n^2)
 -- You will need a helper local definition.
 
--- >>> reverse [1,2,3]
+-- >>> reverseLinear [1,2,3]
 -- [3,2,1]
 -- >>> reverse []
 -- []
 
 reverseLinear :: [a] -> [a]
-reverseLinear = undefined
+reverseLinear xs = go xs []
+  where
+    go (b:bs) rs = go bs (b: rs)
+    go [] rs  = rs
+

@@ -9,6 +9,8 @@
 {-# OPTIONS_GHC -fwarn-name-shadowing #-}
 -- use all your pattern matches!
 {-# OPTIONS_GHC -fwarn-unused-matches #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use foldr" #-}
 
 module IO where
 
@@ -57,13 +59,21 @@ getLine = do
 -- Use {readMaybe :: Read a => String -> Maybe a}
 
 getNumber :: IO Integer
-getNumber = undefined
+getNumber = do
+  c <- getLine
+  case readMaybe  @Integer c of
+    Just cc -> return cc
+    Nothing -> error "Nan"
 
 -- TASK:
 -- Implement reading a {Bool} from stdin.
 
 getBool :: IO Bool
-getBool = undefined
+getBool = do
+  c <- getLine
+  case readMaybe @Bool c of  
+    Just cc -> return cc 
+    Nothing -> error "not bool"
 
 -- TASK:
 -- Implement a function which runs the provided action when
@@ -72,7 +82,9 @@ getBool = undefined
 -- and is an overall very useful function.
 
 whenNothing :: Maybe a -> IO a -> IO a
-whenNothing = undefined
+whenNothing (Just sumthing) _ = pure sumthing
+whenNothing Nothing f = f
+
 
 -- TASK:
 -- {getNumber} and {getBool} are practically the same.
@@ -84,26 +96,36 @@ whenNothing = undefined
 -- because the compiler will not be able to figure out what exactly type you want to read.
 -- e.g. {x <- readLn :: IO Int} to read an {Int}, or similarly you could do {x :: Int <- readLn}
 
--- readLn :: ??
--- readLn = undefined
+readLn :: Read a =>  IO a
+readLn = do
+  c <- getLine
+  whenNothing (readMaybe c) (error "not the requared type")
+
 
 -- TASK:
 -- Same as {readLn}, but don't error out, returning a {Maybe} instead.
 
--- readLnMay :: ??
--- readLnMay = undefined
+readLnMay :: Read a =>  IO (Maybe a)
+readLnMay = do
+  c <- getLine
+  whenNothing (readMaybe c) (pure Nothing)
 
 -- TASK:
 -- Run an IO action only when the given {Bool} is @True 2
 
 when :: Bool -> IO () -> IO ()
-when = undefined
+when predicate f
+  |predicate = f
+  |otherwise = pure ()
 
 -- TASK:
 -- Repeat a {Maybe a} producing action, until it produces a {Just}, returning the result.
 
 untilJustM :: IO (Maybe a) -> IO a
-untilJustM = undefined
+untilJustM f = do
+  c <- f
+  whenNothing c (untilJustM f)
+
 
 -- TASK:
 -- We're going to implement a very simplified version of the Hangman game.
@@ -131,49 +153,81 @@ untilJustM = undefined
 -- 3. Otherwise, we continue playing the game, extending the list of guessed letters.
 
 startHangman :: FilePath -> IO ()
-startHangman = undefined
+startHangman path = do
+  putStrLn "Give number between 1 and 100"
+  c <- getNumber
+  myWords <- readFile path
+  let word = lines myWords !! fromInteger (c-1)
+  playHangman [] word
+
 
 playHangman :: [Char] -> String -> IO ()
-playHangman = undefined
+playHangman guessedSoFar  word
+  | length guessedSoFar == length word = error " u guessed the word "
+  | otherwise                          = do
+    putStrLn "Guess one letter "
+    --let lives = 6 ::Int
+    c <- getLine
+    let b = head c
+    let buffer = word
+    if b `notElem` buffer 
+      then do
+        putStrLn ("wrong letter, letters guessed so far " ++ guessedSoFar)
+        playHangman guessedSoFar word
+      else do
+        putStrLn ("letter is correct, letters guessed so far " ++ (b:guessedSoFar))
+        playHangman (b:guessedSoFar) word
+        
+
+
+
 
 -- TASK:
 -- Run an IO action an infinite amount of times
 
 forever :: IO a -> IO b
-forever = undefined
+forever f = do
+  f
+  forever f
 
 -- TASK:
 -- Map a function over the result of an IO action.
 
 mapIO :: (a -> b) -> IO a -> IO b
-mapIO = undefined
+mapIO f y = do
+  c <- y
+  pure (f c)
 
 -- TASK:
 -- "Lift" a function of two arguments to work over two IO actions instead.
 
 lift2IO :: (a -> b -> c) -> IO a -> IO b -> IO c
-lift2IO = undefined
+lift2IO f act1 act2 = do
+  smth1 <- act1
+  smth2 <- act2
+  pure (f smth1 smth2)
 
 -- TASK:
 -- Read two numbers and sum them using using {lift2IO}
 
 sumTwo :: IO Integer
-sumTwo = undefined
+sumTwo = lift2IO (+) getNumber getNumber
+
 
 -- TASK:
 -- Given an IO action producing a function, and an IO action producing an argument for that function
--- run thefunction over the argument.
+-- run the function over the argument.
 -- Try to implement this using {lift2IO}
 
 apIO :: IO (a -> b) -> IO a -> IO b
-apIO = undefined
+apIO = lift2IO (\ f a -> f a)
 
 -- TASK:
 -- Lift a three argument function to work over three IO actions.
 -- Try to use {apIO}, {pure}/{mapIO} to implement this
 
 lift3IO :: (a -> b -> c -> d) -> IO a -> IO b -> IO c -> IO d
-lift3IO = undefined
+lift3IO f act1 act2 act3 = f `mapIO` act1 `apIO` act2 `apIO` act3
 
 -- TASK:
 -- Given a number and an IO action, run that IO action the number many times,
@@ -181,25 +235,33 @@ lift3IO = undefined
 -- Try to also implement this with {lift2IO}.
 
 replicateIO :: Int -> IO a -> IO [a]
-replicateIO = undefined
-
+replicateIO 0 _ =  pure []
+replicateIO n f = lift2IO (:) f (replicateIO (n-1) f)
 -- TASK:
 -- For each number in a list, read in that many strings from stdin, returning them in a list of lists.
 
 readInLists :: [Int] -> IO [[String]]
-readInLists = undefined
+readInLists [] = pure []
+readInLists (x:xs) = do 
+  myList <- replicateIO x getLine 
+  newMyList <- readInLists xs
+  return (myList  : newMyList)
 
 -- TASK:
 -- Map over a list, executing an IO action for each element, and collect the results in a list.
 
 traverseListIO :: (a -> IO b) -> [a] -> IO [b]
-traverseListIO = undefined
+traverseListIO _ [] = return []
+traverseListIO f (x:xs) = do 
+  c <- f x
+  b <- traverseListIO f xs
+  pure (c:b)
 
 -- TASK:
 -- Implement {readInLists} using {traverseListIO}
 
 readInLists' :: [Int] -> IO [[String]]
-readInLists' = undefined
+readInLists'  = traverseListIO (\ x -> replicateIO x getLine)
 
 -- TASK:
 -- Extend the hangman game to support a turn limit.
